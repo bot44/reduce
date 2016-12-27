@@ -1,5 +1,7 @@
 'use strict';
 
+const Promise = require('any-promise');
+
 function reduce(array, reducer, initialValue) {
     if (array === undefined || array === null) {
         return Promise.reject(new TypeError('Reduce called on null or undefined'));
