@@ -10,27 +10,65 @@ function reduce(array, reducer, initialValue) {
         return Promise.reject(new TypeError(reducer + ' is not a function'));
     }
 
-    let len = array.length || 0;
-    let accumulatorPromise;
+    let length = array.length || 0;
+    let previousValue;
 
-    let dispatch = function (i) {
-        if (i == len) {
-            return accumulatorPromise;
+    let dispatch = function (i, done) {
+        if (i == length) {
+            if (previousValue !== null && previousValue !== undefined && typeof previousValue.then == 'function') {
+                previousValue.then(function (value) { done(null, value); }, done);
+            } else {
+                done(null, previousValue);
+            }
+            return;
         }
-        return Promise.all([accumulatorPromise, array[i]])
-            .then(([accumulator, value]) => {
-                accumulatorPromise = reducer(accumulator, value, i, array);
-                return dispatch(i + 1);
-            });
+        let currentValue = array[i];
+        let c = -1;
+        let tryReducer = function () {
+            if (++c) {
+                try {
+                    previousValue = reducer(previousValue, currentValue, i, array);
+                } catch (err) {
+                    return done(err);
+                }
+                dispatch(i + 1, done);
+            }
+        }
+        if (previousValue !== null && previousValue !== undefined && typeof previousValue.then == 'function') {
+            previousValue.then(function (value) { previousValue = value; tryReducer(); }, done);
+        } else {
+            tryReducer();
+        }
+        if (currentValue !== null && currentValue !== undefined && typeof currentValue.then == 'function') {
+            currentValue.then(function (value) { currentValue = value; tryReducer(); }, done);
+        } else {
+            tryReducer();
+        }
     };
 
     if (arguments.length > 2) {
-        accumulatorPromise = Promise.resolve(initialValue);
-        return dispatch(0);
+        previousValue = initialValue;
+        return new Promise(function (resolve, reject) {
+            dispatch(0, function (err, result) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
 
-    } else if (len) {
-        accumulatorPromise = Promise.resolve(array[0]);
-        return dispatch(1);
+    } else if (length) {
+        previousValue = array[0];
+        return new Promise(function (resolve, reject) {
+            dispatch(1, function (err, result) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
 
     } else {
         return Promise.reject(new TypeError('Reduce of empty array with no initial value'));

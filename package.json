@@ -24,5 +24,10 @@
   "homepage": "https://github.com/bot44/reduce#readme",
   "dependencies": {
     "any-promise": "^1.3.0"
+  },
+  "devDependencies": {
+    "benchmark": "^2.1.3",
+    "bluebird": "^3.4.7",
+    "microtime": "^2.1.2"
   }
 }
